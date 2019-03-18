@@ -1,0 +1,4 @@
+forward: w
+backward: s
+turn_left: a
+turn_right: d
