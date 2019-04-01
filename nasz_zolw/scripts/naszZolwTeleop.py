@@ -29,11 +29,11 @@ def steering():
 		cmd = Twist()
 		if key == forward:
 			cmd.linear.x = 1.0
-		elif key == backward:
+		if key == backward:
 			cmd.linear.x = -1.0
-		elif key == turn_left:
+		if key == turn_left:
 			cmd.angular.z = 1.0
-		elif key == turn_right:
+		if key == turn_right:
 			cmd.angular.z = -1.0
 
 		pub.publish(cmd)
