@@ -19,10 +19,10 @@ def getch():
 def steering():
 	pub = rospy.Publisher('turtle1/cmd_vel', Twist, queue_size = 10)
 	rospy.init_node('naszZolwTeleop', anonymous=True)
-	forward = rospy.get_param("forward")
-	backward = rospy.get_param("backward")
-	turn_left = rospy.get_param("turn_left")
-	turn_right = rospy.get_param("turn_right")
+	forward = rospy.get_param("naszZolwTeleop/forward")
+	backward = rospy.get_param("naszZolwTeleop/backward")
+	turn_left = rospy.get_param("naszZolwTeleop/turn_left")
+	turn_right = rospy.get_param("naszZolwTeleop/turn_right")
 
 	while True:
 		key = getch()
