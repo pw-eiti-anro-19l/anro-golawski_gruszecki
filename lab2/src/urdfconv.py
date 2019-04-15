@@ -1,32 +1,35 @@
 #! /usr/bin/python
-
+import json
 from tf.transformations import *
 
-x, y, z = (1, 0, 0), (0, 1, 0), (0, 0, 1)
 
-lines = [line.rstrip('\n') for line in open('../dh.txt', 'r')]
 
-file = open('../urdf.yaml', 'w')
-with open('../urdf.yaml', 'w') as file:
-    i = 1
-    for line in lines:
-        params = line.split(" ")
-        a, d, alfa, theta = params[0], params[1], params[2], params[3]
-        a, d, alfa, theta = float(a), float(d), float(alfa), float(theta) #conversion
+if __name__ == '__main__':
+    xaxis = (1,0,0)
+    yaxis = (0,1,0)
+    zaxis = (0,0,1)
+    params = {}
+    with open('../dh.json', 'r') as file:
+        params=json.loads(file.read())
 
-        trans_z = translation_matrix((0, 0, d))
-        rotate_z = rotation_matrix(theta, z)
-        trans_x = translation_matrix((0, 0, a))
-        rotate_x = rotation_matrix(alfa, x)
+    with open('../urdf.yaml', 'w') as file:
+        for key in params.keys():
+            a, d, al, th = params[key]
+            a, d, al, th = map(float, (a, d, al, th))
 
-        m = concatenate_matrices(trans_z, rotate_z, trans_x, rotate_x)
-        rpy_angles = euler_from_matrix(m)
-        xyz = translation_from_matrix(m)
+            trans_z = translation_matrix((0,0,d))
+            rot_z = rotation_matrix(th, zaxis)
+            trans_x = translation_matrix((a,0,0))
+            rot_x = rotation_matrix(al, xaxis)
 
-        file.write("i" + str(i) + ":\n")
-        file.write("  j_xyz: {} {} {}\n".format(*xyz))
-        file.write("  j_rpy: {} {} {}\n".format(*rpy_angles))
-        file.write("  l_xyz: {} 0 0\n".format(xyz[0] / 2))
-        file.write("  l_rpy: 0 0 0\n")
-        file.write("  l_len: {}\n".format(a))
-        i += 1
+            mat = concatenate_matrices(trans_z, rot_z, trans_x, rot_x)
+
+            (roll, pitch, yaw) = euler_from_matrix(mat)
+            (x,y,z) = translation_from_matrix(mat)
+
+            file.write(key + ":\n")
+            file.write("    joint_xyz: {} {} {}\n".format(x,y,z))
+            file.write("    joint_rpy: {} {} {}\n".format(roll, pitch, yaw))
+            file.write("    link_xyz: {} 0 0\n".format(x/2))
+            file.write("    link_rpy: 0 0 0\n")
+            file.write("    link_l: {}\n".format(a))
