@@ -1,0 +1,17 @@
+<launch>
+
+  <arg name="model" default="$(find lab3)/urdf/movable.urdf"/>
+  <arg name="gui" default="true" />
+
+  <param name="robot_description" command="$(find xacro)/xacro $(arg model)" />
+  <param name="use_gui" value="$(arg gui)"/>
+
+  <rosparam command="load" file="$(find lab3)urdf.yaml"/>
+
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+  <node name="NONKDL_DKIN" pkg="lab3" type="NONKDL_DKIN.py" />
+  <node name="KDL_DKIN" pkg="lab3" type="KDL_DKIN.py" />
+  <node name="rviz" pkg="rviz" type="rviz" args="-f base_link" required="true"/>
+
+</launch>
