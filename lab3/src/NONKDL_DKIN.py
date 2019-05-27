@@ -21,9 +21,13 @@ def callback(data):
     for i in json_file:
         inst = json.loads(json.dumps(i))
         a = inst["a"]
+        a = float(a)
         d = inst["d"]
+        d = float(d)
         al = inst["alpha"]
+        al = float(al)
         th = inst["theta"]
+        th = float(th)
         trans_z = translation_matrix((0, 0, d * (1 + data.position[j])))
         rot_z = rotation_matrix(th, zaxis)
         trans_x = translation_matrix((a, 0, 0))
@@ -63,3 +67,4 @@ if __name__ == '__main__':
 	    my_listener()        
     except rospy.ROSInterruptException:
         pass
+
