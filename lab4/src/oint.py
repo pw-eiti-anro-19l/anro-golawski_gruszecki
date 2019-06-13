@@ -1,52 +1,81 @@
 #!/usr/bin/env python
- 
+
 import rospy
-from lab4.srv import params
-from sensor_msgs.msg import JointState
+from lab4.srv import params2
+from geometry_msgs.msg import PoseStamped
+from nav_msgs.msg import Path
 from std_msgs.msg import Header
 import math
-import os
-import json
-from sensor_msgs.msg import *
-from tf.transformations import *
-from visualization_msgs.msg import Marker
-from geometry_msgs.msg import PoseStamped
- 
- 
+
 freq = 50
- 
-xaxis, yaxis, zaxis = (1, 0, 0), (0, 1, 0), (0, 0, 1)
-def handle_interpolation(req):
-	if req.time <= 0 or not -100 <= req.j1 <= 100 or not -100 <= req.j2 <= 100 or not -100 <= req.j3 <= 100:
-		return False
- 
-	start_pos = [0, 0, 0]
-	end_pos = [req.j1, req.j2, req.j3]
- 
- 
-	for k in range(0, int(freq*req.time)+1):
-		pos_change = []
-		for i in range(0, 3):
-			pos_change.append((end_pos[i]-start_pos[i])/(freq*req.time)*k)
+prev_pos = (1.0, -1., 1.)
+prev_q = (0., 0., 0., 1.)
+path = Path()
 
-		robot_pose = PoseStamped()
-		robot_pose.header.frame_id = "base_link"
-        	robot_pose.header.stamp = rospy.Time.now()
-        	robot_pose.pose.position.x = pos_change[0]
-        	robot_pose.pose.position.y = pos_change[1]
-        	robot_pose.pose.position.z = pos_change[2]
 
-		rate = rospy.Rate(50) # 50hz
-        	pub.publish(robot_pose)
-        	rate.sleep()
- 
-	current_time = 0
-	return (str(req.j1)+" "+str(req.j2)+" "+str(req.j3))
+def handle_interpolation(data):
+    if data.time <= 0.:
+        return False
+    global prev_pos
+    global prev_q
+    new_pos = (data.x, data.y, data.z)
+    new_q = (data.qx, data.qy, data.qz, data.qw)
+    rate = rospy.Rate(freq)
 
- 
- 
+    current_time = 0.
+    frames_number = int(math.ceil(data.time * freq))
+
+    for i in range(frames_number+1):
+        x = interpolate(prev_pos[0], new_pos[0], data.time, current_time, data.i)
+        y = interpolate(prev_pos[1], new_pos[1], data.time, current_time, data.i)
+        z = interpolate(prev_pos[2], new_pos[2], data.time, current_time, data.i)
+        qx = interpolate(prev_q[0], new_q[0], data.time, current_time, data.i)
+        qy = interpolate(prev_q[1], new_q[1], data.time, current_time, data.i)
+        qz = interpolate(prev_q[2], new_q[2], data.time, current_time, data.i)
+        qw = interpolate(prev_q[3], new_q[3], data.time, current_time, data.i)
+
+        pose = PoseStamped()
+        pose.header.stamp = rospy.Time.now()
+        pose.header.frame_id = 'base_link'
+        pose.pose.position.x = x
+        pose.pose.position.y = y
+        pose.pose.position.z = z
+        pose.pose.orientation.x = qx
+        pose.pose.orientation.y = qy
+        pose.pose.orientation.z = qz
+        pose.pose.orientation.w = qw
+        pub.publish(pose)
+
+        path.header = pose.header
+        path.poses.append(pose)
+        path_pub.publish(path)
+        current_time = current_time + 1.0 / freq
+        rate.sleep()
+
+    prev_pos = new_pos
+    prev_q = new_q
+    return True
+
+def interpolate(start_j, last_j, time, current_time, i):
+    if i == 1:
+        return tri_int(start_j, last_j, time, current_time)
+    else:
+        return lin_int(start_j, last_j, time, current_time)
+
+def lin_int(start_j, last_j, time, current_time):
+    return start_j + (float(last_j - start_j) / time) * current_time
+
+def tri_int(start_j, last_j, time, current_time):
+    h = 2. * float(last_j - start_j) / time
+    ratio = h / (time / 2.)
+    if current_time < time / 2.:
+        return start_j + current_time**2 * ratio / 2.
+    else:
+        return last_j - (time-current_time)**2 * ratio / 2.
+
 if __name__ == "__main__":
-    rospy.init_node('int_srv')
-    pub = rospy.Publisher('oint',PoseStamped, queue_size=10)
-    s = rospy.Service('oint', params, handle_interpolation)
+    rospy.init_node('oint')
+    pub = rospy.Publisher('oint_int', PoseStamped, queue_size=10)
+    path_pub = rospy.Publisher('trace', Path, queue_size=10)
+    s = rospy.Service('oint', params2, handle_interpolation)
     rospy.spin()
