@@ -1,7 +1,0 @@
-<launch>
-
-	<node pkg="turtlesim" name="sim" type="turtlesim_node"/>
-	<node pkg="lab1" name="naszZolwTeleop" type="naszZolwTeleop.py">
-			<rosparam command="load" file="$(find lab1)/params.yaml"/>
-	</node>
-</launch>
